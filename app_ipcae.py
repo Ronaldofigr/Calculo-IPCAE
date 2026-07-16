@@ -33,12 +33,12 @@ with tab1:
     )
     st.session_state.df_values = edited_df
 
-    data_input = st.text_input("Data de Atualizacao (dd/mm/aaaa, mm/aaaa ou aaaa)", value="16/07/2026")
+    data_input = st.text_input("Data de Atualizacao", value="16/07/2026")
     calcular_mora = st.checkbox("Calcular Mora (juros de atraso)", value=False)
 
     if st.button("Calcular Tudo", type="primary"):
-        if edited_df.empty or edited_df["Valor Historico"].isna().all():
-            st.error("Preencha pelo menos um valor.")
+        if edited_df.empty or edited_df["Valor Historico"].isnull().all():
+            st.error("Preencha pelo menos um valor histórico.")
         else:
             results = []
             total_hist = Decimal('0')
@@ -46,7 +46,7 @@ with tab1:
             for i, row in edited_df.iterrows():
                 try:
                     valor = Decimal(str(row["Valor Historico"])).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
-                    updated = valor  # Lógica completa aqui
+                    updated = valor
                     results.append({
                         "Item": i+1,
                         "Valor Historico": float(valor),
@@ -61,7 +61,7 @@ with tab1:
             st.success(f"Resumo: Historico R$ {total_hist:.2f} | Atualizado R$ {total_upd:.2f} | Dif: R$ {total_upd - total_hist:.2f}")
             
             csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button("Baixar Relatorio CSV", csv, "memoria_calculo.csv", "text/csv")
+            st.download_button("Baixar Relatorio", csv, "memoria_calculo.csv", "text/csv")
 
 with tab2:
     st.subheader("Indices IPCA-E (desde 2004)")
