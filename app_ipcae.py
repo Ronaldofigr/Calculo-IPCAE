@@ -37,15 +37,16 @@ with tab1:
     calcular_mora = st.checkbox("Calcular Mora (juros de atraso)", value=False)
 
     if st.button("Calcular Tudo", type="primary"):
-        if edited_df.empty or edited_df["Valor Historico"].isnull().all():
-            st.error("Preencha pelo menos um valor histórico.")
+        if edited_df.empty or edited_df.shape[0] == 0:
+            st.error("Preencha pelo menos um valor.")
         else:
             results = []
             total_hist = Decimal('0')
             total_upd = Decimal('0')
             for i, row in edited_df.iterrows():
                 try:
-                    valor = Decimal(str(row["Valor Historico"])).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+                    valor_str = str(row.get("Valor Historico", 0))
+                    valor = Decimal(valor_str).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
                     updated = valor
                     results.append({
                         "Item": i+1,
