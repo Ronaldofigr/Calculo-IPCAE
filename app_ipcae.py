@@ -37,7 +37,7 @@ with tab1:
     calcular_mora = st.checkbox("Calcular Mora (juros de atraso)", value=False)
 
     if st.button("Calcular Tudo", type="primary"):
-        if edited_df.empty or edited_df.shape[0] == 0:
+        if edited_df.empty or edited_df["Valor Historico"].isnull().all():
             st.error("Preencha pelo menos um valor.")
         else:
             results = []
@@ -45,9 +45,13 @@ with tab1:
             total_upd = Decimal('0')
             for i, row in edited_df.iterrows():
                 try:
-                    valor_str = str(row.get("Valor Historico", 0))
-                    valor = Decimal(valor_str).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+                    valor = Decimal(str(row["Valor Historico"])).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+                    ref_year = int(str(row["Data Referencia"]).split('/')[-1])
                     updated = valor
+                    for year in range(ref_year, 2027):
+                        if year in st.session_state.indices:
+                            rate = Decimal(st.session_state.indices[year])
+                            updated = truncate(updated * (Decimal('1') + rate/100))
                     results.append({
                         "Item": i+1,
                         "Valor Historico": float(valor),
@@ -63,6 +67,9 @@ with tab1:
             
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button("Baixar Relatorio", csv, "memoria_calculo.csv", "text/csv")
+
+def truncate(v):
+    return v.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
 
 with tab2:
     st.subheader("Indices IPCA-E (desde 2004)")
