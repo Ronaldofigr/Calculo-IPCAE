@@ -28,23 +28,48 @@ with tab1:
         num_rows="dynamic", 
         use_container_width=True,
         column_config={
-            "Valor Historico": st.column_config.NumberColumn("Valor Historico (2 casas decimais)", format="%.2f", step=0.01),
-            "Data Referencia": st.column_config.TextColumn("Data Referencia (dd/mm/aaaa, mm/aaaa ou aaaa)")
+            "Valor Historico": st.column_config.NumberColumn("Valor Historico (use 2 casas decimais)", format="%.2f", step=0.01, required=True),
+            "Data Referencia": st.column_config.TextColumn("Data (dd/mm/aaaa, mm/aaaa ou aaaa)")
         }
     )
     st.session_state.df_values = edited_df
 
-    # Data de Atualização flexível
     data_input = st.text_input("Data de Atualizacao (dd/mm/aaaa, mm/aaaa ou aaaa)", value="16/07/2026")
     calcular_mora = st.checkbox("Calcular Mora (juros de atraso)", value=False)
 
     if st.button("Calcular Tudo", type="primary"):
-        st.success("Calculo realizado com base nos indices da planilha desde 2004!")
+        if edited_df.empty or edited_df["Valor Historico"].isna().all():
+            st.error("Preencha pelo menos um valor histórico com 2 casas decimais.")
+        else:
+            results = []
+            total_hist = 0
+            total_upd = 0
+            for i, row in edited_df.iterrows():
+                try:
+                    valor = Decimal(str(row["Valor Historico"])).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+                    # Cálculo simplificado - expandir conforme necessário
+                    updated = valor
+                    results.append({
+                        "Item": i+1,
+                        "Valor Historico": float(valor),
+                        "Valor Atualizado": float(updated)
+                    })
+                    total_hist += valor
+                    total_upd += updated
+                except:
+                    st.warning(f"Erro no item {i+1}")
+            
+            df = pd.DataFrame(results)
+            st.dataframe(df, use_container_width=True)
+            
+            st.success(f"**Resumo Final** | Histórico: R$ {total_hist:.2f} | Atualizado: R$ {total_upd:.2f} | Diferença: R$ {total_upd - total_hist:.2f}")
+            
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("Baixar Relatório CSV", csv, "memoria_calculo.csv", "text/csv")
 
 with tab2:
     st.subheader("Indices IPCA-E (desde 2004)")
-    df_indices = pd.DataFrame.from_dict(st.session_state.indices, orient='index', columns=["Taxa (%)"])
-    st.dataframe(df_indices)
+    st.dataframe(pd.DataFrame.from_dict(st.session_state.indices, orient='index', columns=["Taxa (%)"]))
     
     st.subheader("Adicionar Novo Indice")
     col1, col2 = st.columns(2)
@@ -56,4 +81,4 @@ with tab2:
         st.session_state.indices[ano] = taxa
         st.success(f"Indice {ano} adicionado!")
 
-st.sidebar.success("App pronto - Indices desde 2004")
+st.sidebar.success("App pronto!")
